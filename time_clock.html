@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dusek Concessions Kansas
+         State FAIR 2025</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .text-neon-green { color: #39FF14; }
+        .text-neon-red { color: #FF3131; }
+        .border-neon-green { border-color: #39FF14; }
+        .border-neon-red { border-color: #FF3131; }
+        .glow-green { text-shadow: 0 0 5px #39FF14, 0 0 10px #39FF14; }
+        .glow-red { text-shadow: 0 0 5px #FF3131, 0 0 10px #FF3131; }
+        /* Custom scrollbar styles */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #4b5563;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #6b7280;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-900 bg-opacity-70 z-50 hidden">
+        <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <div id="loading-text" class="mt-4 text-lg font-bold text-gray-400">Loading...</div>
+    </div>
+
+    <!-- Firebase Config Modal -->
+    <div id="config-modal" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-900 bg-opacity-90 z-50 hidden p-4">
+        <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-xl text-center border-2 border-gray-700">
+            <h2 class="text-3xl font-bold text-red-400 mb-4">Configuration Missing</h2>
+            <p class="text-gray-400 mb-6">The app needs a Firebase configuration to connect to the database. Please paste your Firebase configuration JSON below.</p>
+            <textarea id="config-input" class="w-full h-40 p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 border border-gray-600 resize-none" placeholder='Paste your firebase config JSON here. Example: {"apiKey": "...", "authDomain": "..."}'></textarea>
+            <button id="save-config-btn" class="mt-4 px-6 py-3 bg-cyan-600 text-white font-bold rounded-full shadow-lg hover:bg-cyan-700 transition-colors duration-300 transform hover:scale-105">
+                Save and Restart
+            </button>
+            <p id="config-status" class="mt-4 text-sm text-gray-400"></p>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-4xl text-center border-2 border-gray-700 hidden">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-cyan-400 mb-2 tracking-wide">Dusek Concessions<br>Kansas State FAIR 2025</h1>
+        <p class="text-gray-400 mb-6 font-mono text-sm">User ID: <span id="userIdDisplay" class="break-all">Loading...</span></p>
+
+        <!-- Input Fields -->
+        <div class="mb-6 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+            <input type="text" id="firstName" placeholder="First Name" class="w-full sm:w-1/2 p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 border border-gray-600">
+            <input type="text" id="lastName" placeholder="Last Name" class="w-full sm:w-1/2 p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 border border-gray-600">
+        </div>
+        <select id="locationSelect" class="w-full p-3 rounded-xl bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 border border-gray-600 mb-6">
+            <!-- Options will be populated by JS -->
+        </select>
+        
+        <div id="statusDiv" class="text-lg font-semibold p-4 rounded-xl mb-6 border-2 border-gray-700 shadow-inner">
+            <span class="text-gray-400">Enter your name and stand to check status...</span>
+        </div>
+
+        <!-- Clock In/Out Buttons -->
+        <div class="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4 mb-8">
+            <button id="clockInBtn" class="w-full sm:w-1/2 px-6 py-4 bg-green-600 text-white font-bold text-xl rounded-full shadow-lg hover:bg-green-700 transition-colors duration-300 transform hover:scale-105" disabled>
+                Clock In
+            </button>
+            <button id="clockOutBtn" class="w-full sm:w-1/2 px-6 py-4 bg-red-600 text-white font-bold text-xl rounded-full shadow-lg hover:bg-red-700 transition-colors duration-300 transform hover:scale-105" disabled>
+                Clock Out
+            </button>
+        </div>
+
+        <div class="mt-8">
+            <h2 class="text-2xl font-bold text-gray-200 mb-4">Your Recent Activity</h2>
+            <div id="historyList" class="space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                <div class="text-gray-500 text-sm">Loading history...</div>
+            </div>
+        </div>
+        
+        <!-- Admin View Toggle -->
+        <div class="mt-8 flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-2">
+            <input type="password" id="adminPassword" placeholder="Admin Password" class="p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 border border-gray-600">
+            <button id="accessAdminViewBtn" class="px-6 py-2 bg-blue-600 text-white rounded-full shadow-md hover:bg-blue-700 transition-colors duration-300">
+                Access Admin View
+            </button>
+        </div>
+    </div>
+
+    <!-- Admin View Section -->
+    <div id="adminView" class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-4xl text-center mt-8 hidden border-2 border-gray-700">
+        <h2 class="text-3xl font-bold text-cyan-400 mb-4">Admin Dashboard</h2>
+        <div id="adminTablesContainer" class="space-y-8">
+            <!-- Individual employee time tables will be populated here -->
+        </div>
+    </div>
+    
+    <!-- Edit Modal -->
+    <div id="editModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-gray-700">
+            <h3 class="text-2xl font-bold text-cyan-400 mb-4">Edit Entry</h3>
+            <div class="space-y-4">
+                <input type="hidden" id="editDocId">
+                <div>
+                    <label class="block text-left text-gray-400 mb-1">First Name</label>
+                    <input type="text" id="editFirstName" class="w-full p-3 rounded-xl bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 border border-gray-600">
+                </div>
+                <div>
+                    <label class="block text-left text-gray-400 mb-1">Last Name</label>
+                    <input type="text" id="editLastName" class="w-full p-3 rounded-xl bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 border border-gray-600">
+                </div>
+                <div>
+                    <label class="block text-left text-gray-400 mb-1">Location</label>
+                    <select id="editLocation" class="w-full p-3 rounded-xl bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 border border-gray-600">
+                        <!-- Options will be populated by JS -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-left text-gray-400 mb-1">Action</label>
+                    <select id="editAction" class="w-full p-3 rounded-xl bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 border border-gray-600">
+                        <option value="in">Clock In</option>
+                        <option value="out">Clock Out</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-left text-gray-400 mb-1">Time</label>
+                    <input type="datetime-local" id="editTimestamp" class="w-full p-3 rounded-xl bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 border border-gray-600">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-4">
+                <button id="saveEditBtn" class="px-6 py-2 bg-green-600 text-white rounded-full shadow-md hover:bg-green-700 transition-colors duration-300">
+                    Save Changes
+                </button>
+                <button id="cancelEditBtn" class="px-6 py-2 bg-gray-600 text-white rounded-full shadow-md hover:bg-gray-700 transition-colors duration-300">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, onSnapshot, collection, query, where, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        setLogLevel('debug');
+
+        // Global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfigFromEnv = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // --- UI Elements ---
+        const appContainer = document.getElementById('app-container');
+        const configModal = document.getElementById('config-modal');
+        const configInput = document.getElementById('config-input');
+        const saveConfigBtn = document.getElementById('save-config-btn');
+        const configStatus = document.getElementById('config-status');
+        const clockInBtn = document.getElementById('clockInBtn');
+        const clockOutBtn = document.getElementById('clockOutBtn');
+        const statusDiv = document.getElementById('statusDiv');
+        const historyList = document.getElementById('historyList');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const loadingText = document.getElementById('loading-text');
+        const firstNameInput = document.getElementById('firstName');
+        const lastNameInput = document.getElementById('lastName');
+        const locationSelect = document.getElementById('locationSelect');
+        const accessAdminViewBtn = document.getElementById('accessAdminViewBtn');
+        const adminPasswordInput = document.getElementById('adminPassword');
+        const adminViewContainer = document.getElementById('adminView');
+        const adminTablesContainer = document.getElementById('adminTablesContainer');
+        const editModal = document.getElementById('editModal');
+        const editDocIdInput = document.getElementById('editDocId');
+        const editFirstNameInput = document.getElementById('editFirstName');
+        const editLastNameInput = document.getElementById('editLastName');
+        const editLocationSelect = document.getElementById('editLocation');
+        const editActionInput = document.getElementById('editAction');
+        const editTimestampInput = document.getElementById('editTimestamp');
+        const saveEditBtn = document.getElementById('saveEditBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+        // --- Firebase Initialization & State ---
+        let db;
+        let auth;
+        let userId = null;
+        let isAuthReady = false; // New state variable
+        let unsubscribeUserHistory = null;
+        let unsubscribeAdminView = null;
+        let allEvents = [];
+        let timerId = null;
+
+        // !! SECURITY WARNING: The following password is hardcoded and visible in the source code.
+        // !! This is not a secure method for protecting sensitive information.
+        // !! It is only for a simple convenience toggle.
+        const ADMIN_PASSWORD = "Shitshack24";
+
+        const publicCollectionPath = `artifacts/${appId}/public/data/time_clocks`;
+
+        const locations = {
+            1: "Rootbeer 1", 2: "Rootbeer 2", 3: "Rootbeer 3", 4: "Rootbeer 4", 5: "Blooming Onion",
+            6: "Indian taco", 7: "Quesadilla", 8: "Funnel Cake", 9: "Fryshack", 10: "Smoothie Shack",
+            11: "Funnel Cake Jr", 12: "Corn"
+        };
+        
+        const populateLocationSelect = () => {
+            let optionsHtml = '<option value="" disabled selected>Select a Location</option>';
+            for (const [key, value] of Object.entries(locations)) {
+                optionsHtml += `<option value="${key}">${value}</option>`;
+            }
+            locationSelect.innerHTML = optionsHtml;
+            editLocationSelect.innerHTML = optionsHtml;
+        };
+        
+        populateLocationSelect();
+
+        const initFirebase = async () => {
+            showSpinner();
+            updateLoadingStatus("Initializing app...");
+
+            let firebaseConfig = {};
+
+            // Prioritize the environment variable
+            if (Object.keys(firebaseConfigFromEnv).length > 0) {
+                firebaseConfig = firebaseConfigFromEnv;
+                console.log("Using Firebase config from environment.");
+            } else {
+                // Fallback to localStorage
+                const storedConfig = localStorage.getItem('firebaseConfig');
+                if (storedConfig) {
+                    try {
+                        firebaseConfig = JSON.parse(storedConfig);
+                        console.log("Using Firebase config from localStorage.");
+                    } catch (e) {
+                        console.error("Invalid Firebase config in localStorage:", e);
+                        localStorage.removeItem('firebaseConfig');
+                    }
+                }
+            }
+            
+            // Check if a valid config exists now
+            if (Object.keys(firebaseConfig).length === 0) {
+                updateLoadingStatus("Configuration required.");
+                hideSpinner();
+                showConfigModal();
+                return;
+            }
+            
+            // If we have a config, initialize Firebase
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                console.log("Firebase initialized successfully.");
+                appContainer.classList.remove('hidden');
+                configModal.classList.add('hidden');
+
+                updateLoadingStatus("Authenticating user...");
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = userId;
+                        console.log("User authenticated:", userId);
+                        updateLoadingStatus("Loading your data...");
+                        setupRealtimeListeners();
+                    } else {
+                        console.log("No user is signed in.");
+                        userId = null;
+                        userIdDisplay.textContent = 'Not authenticated';
+                        displayMessage("Please sign in.", "bg-yellow-200 text-yellow-800");
+                        historyList.innerHTML = '<div class="text-gray-500 text-sm">Sign in to view history.</div>';
+                    }
+                    isAuthReady = true; // Auth state is now known
+                    hideSpinner();
+                    setButtonState();
+                });
+
+                await authenticateUser();
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                displayMessage("Error initializing app. Check console for details.", "bg-red-200 text-red-800");
+                hideSpinner();
+            }
+        };
+
+        const showConfigModal = () => {
+            configModal.classList.remove('hidden');
+        };
+
+        const saveConfig = () => {
+            try {
+                const config = JSON.parse(configInput.value);
+                localStorage.setItem('firebaseConfig', JSON.stringify(config));
+                configStatus.textContent = "Configuration saved! Reloading...";
+                configStatus.classList.remove('text-red-400');
+                configStatus.classList.add('text-green-400');
+                setTimeout(() => window.location.reload(), 2000);
+            } catch (e) {
+                configStatus.textContent = "Invalid JSON. Please check the format.";
+                configStatus.classList.remove('text-green-400');
+                configStatus.classList.add('text-red-400');
+                console.error("Invalid config JSON:", e);
+            }
+        };
+
+        const authenticateUser = async () => {
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                    console.log("Signed in with custom token.");
+                } else {
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously.");
+                }
+            } catch (error) {
+                console.error("Authentication error:", error);
+                displayMessage("Authentication failed. Check console for details.", "bg-red-200 text-red-800");
+            }
+        };
+        
+        const setButtonState = () => {
+            const state = isAuthReady && userId;
+            clockInBtn.disabled = !state;
+            clockOutBtn.disabled = !state;
+        };
+
+        const setupRealtimeListeners = () => {
+            if (!userId) {
+                console.error("Cannot set up listeners: userId is not available.");
+                return;
+            }
+            
+            // Listen for changes to the user's own clock-in/out events
+            const userHistoryCollectionRef = collection(db, publicCollectionPath);
+            const userHistoryQuery = query(userHistoryCollectionRef, where("userId", "==", userId));
+
+            if (unsubscribeUserHistory) unsubscribeUserHistory();
+            unsubscribeUserHistory = onSnapshot(userHistoryQuery, (querySnapshot) => {
+                try {
+                    const history = [];
+                    querySnapshot.forEach((doc) => {
+                        history.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    history.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
+                    
+                    renderHistory(history);
+                } catch (error) {
+                    console.error("Error fetching or rendering history:", error);
+                    displayMessage("Error loading history. Check console.", "bg-red-200 text-red-800");
+                }
+            });
+
+            // Listen for all clock-in/out events for the admin view
+            if (unsubscribeAdminView) unsubscribeAdminView();
+            unsubscribeAdminView = onSnapshot(collection(db, publicCollectionPath), (querySnapshot) => {
+                try {
+                    allEvents = [];
+                    querySnapshot.forEach((doc) => {
+                        allEvents.push({ id: doc.id, ...doc.data() });
+                    });
+                    renderAdminView(allEvents);
+                } catch (error) {
+                    console.error("Error fetching admin data:", error);
+                }
+            });
+        };
+        
+        const checkUserStatus = async () => {
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
+            const location = parseInt(locationSelect.value, 10);
+
+            if (!firstName || !lastName || isNaN(location)) {
+                statusDiv.innerHTML = '<span class="text-gray-400">Enter your name and stand to check status...</span>';
+                statusDiv.classList.remove('border-neon-green', 'border-neon-red');
+                return null;
+            }
+
+            const clockRef = collection(db, publicCollectionPath);
+            const userQuery = query(clockRef, where("firstName", "==", firstName), where("lastName", "==", lastName), where("location", "==", location));
+            
+            try {
+                const querySnapshot = await getDocs(userQuery);
+                const events = [];
+                querySnapshot.forEach(doc => events.push(doc.data()));
+                events.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
+
+                const lastAction = events.length > 0 ? events[0].action : 'out';
+                
+                if (lastAction === 'in') {
+                    statusDiv.innerHTML = `<span class="text-green-400 glow-green">${firstName} is currently <strong class="font-bold">Clocked In</strong></span>`;
+                    statusDiv.classList.add('border-neon-green');
+                    statusDiv.classList.remove('border-neon-red');
+                } else {
+                    statusDiv.innerHTML = `<span class="text-red-400 glow-red">${firstName} is currently <strong class="font-bold">Clocked Out</strong></span>`;
+                    statusDiv.classList.add('border-neon-red');
+                    statusDiv.classList.remove('border-neon-green');
+                }
+                return lastAction;
+
+            } catch (error) {
+                console.error("Error checking user status:", error);
+                displayMessage("Error checking status. See console.", "bg-red-200 text-red-800");
+                return null;
+            }
+        };
+
+        const renderHistory = (history) => {
+            historyList.innerHTML = '';
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="text-gray-500 text-sm">No clock events recorded yet.</div>';
+                return;
+            }
+
+            history.forEach(event => {
+                const date = new Date(event.timestamp.toMillis());
+                const formattedTime = date.toLocaleString('en-US', {
+                    weekday: 'short',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: 'numeric',
+                    hour12: true
+                });
+                const color = event.action === 'in' ? 'bg-green-800' : 'bg-red-800';
+                const actionText = event.action === 'in' ? 'Clocked In' : 'Clocked Out';
+                
+                const locationName = locations[event.location] || `Unknown Location ${event.location}`;
+
+                const item = document.createElement('div');
+                item.className = `${color} p-4 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-center`;
+                item.innerHTML = `
+                    <div class="text-left w-full sm:w-auto">
+                        <span class="text-gray-200 font-medium">${actionText}</span>
+                        <span class="text-gray-400 text-sm block sm:inline sm:ml-4">by ${event.firstName} ${event.lastName} at ${locationName}</span>
+                    </div>
+                    <span class="text-gray-400 text-sm mt-2 sm:mt-0">${formattedTime}</span>
+                `;
+                historyList.appendChild(item);
+            });
+        };
+        
+        const formatDuration = (ms) => {
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const remainingMinutes = minutes % 60;
+            const remainingSeconds = seconds % 60;
+            
+            let parts = [];
+            if (hours > 0) parts.push(`${hours}h`);
+            if (remainingMinutes > 0) parts.push(`${remainingMinutes}m`);
+            if (remainingSeconds > 0) parts.push(`${remainingSeconds}s`);
+            
+            return parts.length > 0 ? parts.join(' ') : '0m 0s';
+        };
+
+        const renderAdminView = (events) => {
+            adminTablesContainer.innerHTML = '';
+
+            // Group events by user and sort them by timestamp
+            const eventsByUser = {};
+            events.forEach(event => {
+                const key = `${event.userId}_${event.firstName}_${event.lastName}`;
+                if (!eventsByUser[key]) {
+                    eventsByUser[key] = {
+                        events: [],
+                        firstName: event.firstName,
+                        lastName: event.lastName,
+                        userId: event.userId
+                    };
+                }
+                eventsByUser[key].events.push(event);
+            });
+
+            // Sort users by last clock-in/out time
+            const sortedUserKeys = Object.keys(eventsByUser).sort((a, b) => {
+                const lastEventA = eventsByUser[a].events.sort((x, y) => y.timestamp.toMillis() - x.timestamp.toMillis())[0];
+                const lastEventB = eventsByUser[b].events.sort((x, y) => y.timestamp.toMillis() - x.timestamp.toMillis())[0];
+                return lastEventB.timestamp.toMillis() - lastEventA.timestamp.toMillis();
+            });
+
+            sortedUserKeys.forEach(userKey => {
+                const user = eventsByUser[userKey];
+                user.events.sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
+
+                const userTableDiv = document.createElement('div');
+                userTableDiv.className = "bg-gray-700 p-6 rounded-lg shadow-xl border-2 border-gray-600";
+                
+                const tableTitle = document.createElement('h3');
+                tableTitle.className = "text-xl font-bold text-cyan-400 mb-4 text-left";
+                tableTitle.textContent = `${user.firstName} ${user.lastName}`;
+                userTableDiv.appendChild(tableTitle);
+
+                const table = document.createElement('table');
+                table.className = "min-w-full text-white";
+                table.innerHTML = `
+                    <thead>
+                        <tr class="bg-gray-600">
+                            <th class="py-3 px-4 uppercase font-bold text-sm text-left">Date</th>
+                            <th class="py-3 px-4 uppercase font-bold text-sm text-left">Action</th>
+                            <th class="py-3 px-4 uppercase font-bold text-sm text-left">Location</th>
+                            <th class="py-3 px-4 uppercase font-bold text-sm text-left">Time</th>
+                            <th class="py-3 px-4 uppercase font-bold text-sm text-left">Edit</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                `;
+                const tbody = table.querySelector('tbody');
+                
+                // Group events by day and calculate daily totals
+                const dailyTotals = {};
+                user.events.forEach(event => {
+                    const date = event.timestamp.toDate();
+                    const dateStr = date.toISOString().split('T')[0];
+                    const location = event.location;
+                    if (!dailyTotals[dateStr]) {
+                        dailyTotals[dateStr] = {
+                            locations: {},
+                            dailyTotalMs: 0
+                        };
+                    }
+                    if (!dailyTotals[dateStr].locations[location]) {
+                        dailyTotals[dateStr].locations[location] = {
+                            in: null,
+                            out: null,
+                            pairs: []
+                        };
+                    }
+
+                    if (event.action === 'in' && !dailyTotals[dateStr].locations[location].in) {
+                        dailyTotals[dateStr].locations[location].in = event;
+                    } else if (event.action === 'out' && dailyTotals[dateStr].locations[location].in) {
+                        dailyTotals[dateStr].locations[location].out = event;
+                        dailyTotals[dateStr].locations[location].pairs.push([dailyTotals[dateStr].locations[location].in, dailyTotals[dateStr].locations[location].out]);
+                        dailyTotals[dateStr].locations[location].in = null;
+                        dailyTotals[dateStr].locations[location].out = null;
+                    } else if (event.action === 'out' && !dailyTotals[dateStr].locations[location].in) {
+                         dailyTotals[dateStr].locations[location].pairs.push([null, event]);
+                    }
+                    
+                    const formattedTime = date.toLocaleString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        hour12: true
+                    });
+                    const locationName = locations[event.location] || `Unknown Location ${event.location}`;
+
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-600 hover:bg-gray-600 transition-colors duration-200';
+                    row.innerHTML = `
+                        <td class="py-3 px-4 text-sm font-medium text-left">${dateStr}</td>
+                        <td class="py-3 px-4 text-sm text-left">${event.action === 'in' ? 'Clock In' : 'Clock Out'}</td>
+                        <td class="py-3 px-4 text-sm text-left">${locationName}</td>
+                        <td class="py-3 px-4 text-sm text-left">${formattedTime}</td>
+                        <td class="py-3 px-4 text-sm text-left">
+                            <button class="edit-btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-3 rounded-full" data-id="${event.id}">Edit</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                let monthlyTotalMs = 0;
+                let dailyRows = '';
+
+                Object.keys(dailyTotals).sort().forEach(dateStr => {
+                    const dayData = dailyTotals[dateStr];
+                    let dailyTotalMs = 0;
+
+                    Object.keys(dayData.locations).forEach(locationKey => {
+                        const locationData = dayData.locations[locationKey];
+                        let locationTotalMs = 0;
+                        locationData.pairs.forEach(pair => {
+                            const inEvent = pair[0];
+                            const outEvent = pair[1];
+                            if (inEvent && outEvent) {
+                                locationTotalMs += outEvent.timestamp.toMillis() - inEvent.timestamp.toMillis();
+                            }
+                        });
+                        dailyTotalMs += locationTotalMs;
+                        
+                        const locationName = locations[locationKey] || `Unknown Location ${locationKey}`;
+                        const locationTotalFormatted = formatDuration(locationTotalMs);
+                        dailyRows += `
+                            <tr class="bg-gray-800 text-gray-400">
+                                <td class="py-2 px-4 text-xs text-left" colspan="3">at ${locationName}:</td>
+                                <td class="py-2 px-4 text-xs text-left">${locationTotalFormatted}</td>
+                                <td></td>
+                            </tr>
+                        `;
+                    });
+
+                    // Add row for daily totals
+                    const dailyTotalFormatted = formatDuration(dailyTotalMs);
+                    dailyRows += `
+                        <tr class="bg-gray-800 font-bold">
+                            <td class="py-3 px-4 text-sm text-left" colspan="3">Daily Total for ${dateStr}:</td>
+                            <td class="py-3 px-4 text-sm text-left">${dailyTotalFormatted}</td>
+                            <td></td>
+                        </tr>
+                    `;
+                    monthlyTotalMs += dailyTotalMs;
+                });
+                
+                // Add rows to the table body
+                tbody.insertAdjacentHTML('beforeend', dailyRows);
+                
+                // Calculate and add monthly total row
+                const monthlyTotalFormatted = formatDuration(monthlyTotalMs);
+                const monthlyTotalRow = document.createElement('tfoot');
+                monthlyTotalRow.innerHTML = `
+                    <tr class="bg-cyan-900 font-bold text-cyan-200">
+                        <td class="py-3 px-4 text-lg text-left" colspan="3">Monthly Total:</td>
+                        <td class="py-3 px-4 text-lg text-left">${monthlyTotalFormatted}</td>
+                        <td></td>
+                    </tr>
+                `;
+                table.appendChild(monthlyTotalRow);
+
+                userTableDiv.appendChild(table);
+                adminTablesContainer.appendChild(userTableDiv);
+            });
+        };
+
+        const handleClockAction = async () => {
+            if (!isAuthReady || !userId) {
+                // Should not happen as buttons are disabled, but good practice
+                displayMessage("Authentication not ready. Please wait a moment.", "bg-red-800 text-red-200");
+                return;
+            }
+
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
+            const location = parseInt(locationSelect.value, 10);
+
+            if (!firstName || !lastName) {
+                displayMessage("Please enter your first and last name.", "bg-red-800 text-red-200");
+                return;
+            }
+
+            if (isNaN(location) || !locations[location]) {
+                displayMessage("Please select a valid location.", "bg-red-800 text-red-200");
+                return;
+            }
+            
+            showSpinner();
+            updateLoadingStatus("Logging your clock event...");
+            
+            try {
+                // Determine the correct action
+                const lastAction = await checkUserStatus();
+                const finalAction = (lastAction === 'in') ? 'out' : 'in';
+
+                const clockRef = collection(db, publicCollectionPath);
+                await addDoc(clockRef, {
+                    userId: userId,
+                    firstName: firstName,
+                    lastName: lastName,
+                    location: location,
+                    timestamp: new Date(),
+                    action: finalAction
+                });
+                console.log(`Successfully recorded ${finalAction} event.`);
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                displayMessage(`Error saving event. Check console.`, "bg-red-800 text-red-200");
+            } finally {
+                hideSpinner();
+            }
+        };
+
+        const editEntry = (docId) => {
+            const entryToEdit = allEvents.find(event => event.id === docId);
+            if (!entryToEdit) {
+                console.error("Entry not found for editing.");
+                return;
+            }
+            editDocIdInput.value = docId;
+            editFirstNameInput.value = entryToEdit.firstName;
+            editLastNameInput.value = entryToEdit.lastName;
+            editLocationSelect.value = entryToEdit.location;
+            editActionInput.value = entryToEdit.action;
+            
+            const date = entryToEdit.timestamp.toDate();
+            const localDateString = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            editTimestampInput.value = localDateString;
+            
+            editModal.classList.remove('hidden');
+        };
+
+        const saveEditedEntry = async () => {
+            const docId = editDocIdInput.value;
+            const newFirstName = editFirstNameInput.value.trim();
+            const newLastName = editLastNameInput.value.trim();
+            const newLocation = parseInt(editLocationSelect.value, 10);
+            const newAction = editActionInput.value;
+            const newTimestamp = new Date(editTimestampInput.value);
+
+            if (!newFirstName || !newLastName || isNaN(newLocation) || !locations[newLocation] || isNaN(newTimestamp.getTime())) {
+                // In a real app, you would display an error message here
+                return;
+            }
+
+            try {
+                showSpinner();
+                updateLoadingStatus("Saving changes...");
+                const entryRef = doc(db, publicCollectionPath, docId);
+                await updateDoc(entryRef, {
+                    firstName: newFirstName,
+                    lastName: newLastName,
+                    location: newLocation,
+                    action: newAction,
+                    timestamp: newTimestamp
+                });
+                console.log("Document successfully updated!");
+                editModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Error updating document:", error);
+            } finally {
+                hideSpinner();
+            }
+        };
+
+        const cancelEdit = () => {
+            editModal.classList.add('hidden');
+        };
+
+        // --- UI Feedback Functions ---
+        const displayMessage = (message, colorClass) => {
+            statusDiv.innerHTML = `<span class="${colorClass}">${message}</span>`;
+            statusDiv.className = `text-lg font-semibold p-4 rounded-xl mb-6 shadow-inner ${colorClass}`;
+            statusDiv.classList.add('border-2', 'border-gray-700');
+        };
+
+        const showSpinner = () => {
+            loadingSpinner.classList.remove('hidden');
+        };
+
+        const hideSpinner = () => {
+            loadingSpinner.classList.add('hidden');
+        };
+        
+        const updateLoadingStatus = (message) => {
+            loadingText.textContent = message;
+        };
+
+        const handleAdminAccess = () => {
+            if (adminPasswordInput.value === ADMIN_PASSWORD) {
+                adminViewContainer.classList.toggle('hidden');
+                adminPasswordInput.value = ''; // Clear the password field
+                if (!adminViewContainer.classList.contains('hidden')) {
+                    accessAdminViewBtn.textContent = 'Hide Admin View';
+                } else {
+                    accessAdminViewBtn.textContent = 'Access Admin View';
+                }
+            } else {
+                displayMessage("Incorrect password.", "bg-red-800 text-red-200");
+                adminPasswordInput.value = '';
+            }
+        };
+        
+        const debounceCheckStatus = () => {
+            if (timerId) {
+                clearTimeout(timerId);
+            }
+            timerId = setTimeout(() => {
+                checkUserStatus();
+            }, 500);
+        };
+
+        // --- Event Listeners ---
+        clockInBtn.addEventListener('click', handleClockAction);
+        clockOutBtn.addEventListener('click', handleClockAction);
+        accessAdminViewBtn.addEventListener('click', handleAdminAccess);
+        saveConfigBtn.addEventListener('click', saveConfig);
+        
+        adminTablesContainer.addEventListener('click', (event) => {
+            if (event.target.classList.contains('edit-btn')) {
+                const docId = event.target.getAttribute('data-id');
+                editEntry(docId);
+            }
+        });
+
+        saveEditBtn.addEventListener('click', saveEditedEntry);
+        cancelEditBtn.addEventListener('click', cancelEdit);
+
+        firstNameInput.addEventListener('input', debounceCheckStatus);
+        lastNameInput.addEventListener('input', debounceCheckStatus);
+        locationSelect.addEventListener('change', debounceCheckStatus);
+
+        // Start the application
+        initFirebase();
+    </script>
+</body>
+</html>
